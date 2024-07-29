@@ -1,0 +1,236 @@
+local library = {}
+library.__index = library
+
+local function createInstance(className, properties)
+    local instance = Instance.new(className)
+    for property, value in pairs(properties) do
+        instance[property] = value
+    end
+    return instance
+end
+
+function library.new(titleText)
+    local lib = setmetatable({}, library)
+
+    local screenGui = createInstance("ScreenGui", {Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")})
+
+    local mainFrame = createInstance("Frame", {
+        Size = UDim2.new(0, 300, 0, 400),
+        Position = UDim2.new(0.5, -150, 0.5, -200),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+        Parent = screenGui,
+        Draggable = true,
+        Active = true,
+        ClipsDescendants = true
+    })
+
+    createInstance("UICorner", {CornerRadius = UDim.new(0, 10), Parent = mainFrame})
+
+    local titleBar = createInstance("Frame", {
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundColor3 = Color3.fromRGB(50, 50, 50),
+        Parent = mainFrame
+    })
+
+    local titleLabel = createInstance("TextLabel", {
+        Size = UDim2.new(1, -60, 1, 0),
+        Position = UDim2.new(0, 10, 0, 0),
+        Text = titleText or "Title",
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        BackgroundTransparency = 1,
+        Parent = titleBar
+    })
+
+    local closeButton = createInstance("TextButton", {
+        Size = UDim2.new(0, 30, 1, 0),
+        Position = UDim2.new(1, -30, 0, 0),
+        Text = "X",
+        TextColor3 = Color3.fromRGB(255, 0, 0),
+        BackgroundTransparency = 1,
+        Parent = titleBar
+    })
+
+    local minimizeButton = createInstance("TextButton", {
+        Size = UDim2.new(0, 30, 1, 0),
+        Position = UDim2.new(1, -60, 0, 0),
+        Text = "-",
+        TextColor3 = Color3.fromRGB(255, 255, 0),
+        BackgroundTransparency = 1,
+        Parent = titleBar
+    })
+
+    local contentFrame = createInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -30),
+        Position = UDim2.new(0, 0, 0, 30),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 8,
+        BackgroundTransparency = 1,
+        ClipsDescendants = true,
+        Parent = mainFrame
+    })
+
+    closeButton.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+
+    minimizeButton.MouseButton1Click:Connect(function()
+        mainFrame.Visible = not mainFrame.Visible
+    end)
+
+    local function updateCanvasSize()
+        contentFrame.CanvasSize = UDim2.new(0, 0, 0, contentFrame.UIListLayout.AbsoluteContentSize.Y)
+    end
+
+    local uiListLayout = createInstance("UIListLayout", {
+        Parent = contentFrame,
+        SortOrder = Enum.SortOrder.LayoutOrder
+    })
+
+    uiListLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvasSize)
+
+    function lib:addDropdown(options)
+        local dropdownFrame = createInstance("Frame", {
+            Size = UDim2.new(1, -20, 0, 30),
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            Parent = contentFrame
+        })
+        createInstance("UICorner", {CornerRadius = UDim.new(0, 5), Parent = dropdownFrame})
+
+        local dropdownLabel = createInstance("TextLabel", {
+            Size = UDim2.new(1, -30, 1, 0),
+            Text = options.Title or "Dropdown",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 1,
+            Parent = dropdownFrame
+        })
+
+        local dropdownButton = createInstance("TextButton", {
+            Size = UDim2.new(0, 30, 1, 0),
+            Position = UDim2.new(1, -30, 0, 0),
+            Text = "v",
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 1,
+            Parent = dropdownFrame
+        })
+
+        local dropdownContent = createInstance("Frame", {
+            Size = UDim2.new(1, -20, 0, #options.Items * 30),
+            Position = UDim2.new(0, 10, 1, 0),
+            Visible = false,
+            Parent = dropdownFrame
+        })
+
+        for i, item in ipairs(options.Items) do
+            local itemButton = createInstance("TextButton", {
+                Size = UDim2.new(1, 0, 0, 30),
+                Position = UDim2.new(0, 0, 0, (i - 1) * 30),
+                Text = item,
+                TextColor3 = Color3.fromRGB(255, 255, 255),
+                BackgroundColor3 = Color3.fromRGB(70, 70, 70),
+                Parent = dropdownContent
+            })
+
+            itemButton.MouseButton1Click:Connect(function()
+                dropdownLabel.Text = item
+                if options.Callback then
+                    options.Callback(item)
+                end
+            end)
+        end
+
+        dropdownButton.MouseButton1Click:Connect(function()
+            dropdownContent.Visible = not dropdownContent.Visible
+            updateCanvasSize()
+        end)
+    end
+
+    function lib:addLabel(text)
+        local label = createInstance("TextLabel", {
+            Size = UDim2.new(1, -20, 0, 30),
+            Text = text,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            Parent = contentFrame
+        })
+    end
+
+    function lib:addToggle(text, callback)
+        local toggleFrame = createInstance("Frame", {
+            Size = UDim2.new(1, -20, 0, 30),
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            Parent = contentFrame
+        })
+
+        local toggleLabel = createInstance("TextLabel", {
+            Size = UDim2.new(1, -30, 1, 0),
+            Text = text,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 1,
+            Parent = toggleFrame
+        })
+
+        local toggleButton = createInstance("TextButton", {
+            Size = UDim2.new(0, 30, 1, 0),
+            Position = UDim2.new(1, -30, 0, 0),
+            Text = "Off",
+            TextColor3 = Color3.fromRGB(255, 0, 0),
+            BackgroundTransparency = 1,
+            Parent = toggleFrame
+        })
+
+        local toggled = false
+
+        toggleButton.MouseButton1Click:Connect(function()
+            toggled = not toggled
+            toggleButton.Text = toggled and "On" or "Off"
+            toggleButton.TextColor3 = toggled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+            if callback then
+                callback(toggled)
+            end
+        end)
+    end
+
+    function lib:addTextbox(placeholder, callback)
+        local textBoxFrame = createInstance("Frame", {
+            Size = UDim2.new(1, -20, 0, 30),
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            Parent = contentFrame
+        })
+
+        local textBox = createInstance("TextBox", {
+            Size = UDim2.new(1, 0, 1, 0),
+            PlaceholderText = placeholder,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 1,
+            Parent = textBoxFrame
+        })
+
+        textBox.FocusLost:Connect(function(enterPressed)
+            if enterPressed and callback then
+                callback(textBox.Text)
+            end
+        end)
+    end
+
+    function lib:addButton(text, callback)
+        local button = createInstance("TextButton", {
+            Size = UDim2.new(1, -20, 0, 30),
+            Text = text,
+            TextColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundColor3 = Color3.fromRGB(60, 60, 60),
+            Parent = contentFrame
+        })
+
+        button.MouseButton1Click:Connect(function()
+            if callback then
+                callback()
+            end
+        end)
+    end
+
+    return lib
+end
+
+return library
